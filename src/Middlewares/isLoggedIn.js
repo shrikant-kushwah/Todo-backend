@@ -3,7 +3,7 @@ const { User } = require("../Models/userSchema");
 
 async function isLoggedIn(req, res, next) {
   try {
-    const { token } = req.cookies;
+    const token = req.cookies?.token;
 
     // 400 → No token
     if (!token) {
