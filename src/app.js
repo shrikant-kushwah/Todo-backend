@@ -12,11 +12,11 @@ const app = express();
 
 //Middlewares 
 app.use(cors({
-  credentials: true,
   origin: [
     "http://localhost:5173",
     "https://todo-frontend-six-henna.vercel.app"
-  ]
+  ],
+  credentials: true
 }));
 
 app.use(express.json());
