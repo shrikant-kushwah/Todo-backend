@@ -24,7 +24,7 @@ const cookieParser = require("cookie-parser")
 // middlewares
 app.use(cors({
   credentials: true,
-  origin: "https://todo-frontend-six-henna.vercel.app/api"
+  origin: "https://todo-frontend-six-henna.vercel.app"
   // origin: "http://localhost:5173"
 }))
 
