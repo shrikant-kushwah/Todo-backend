@@ -1,57 +1,57 @@
-const express = require("express")
-const app = express()
-require("dotenv").config()
-const mongoose = require("mongoose")
-const todoRouter = require("./Routes/todoRoutes")
-const { router: userRouter } = require("./Routes/userRoutes")
-const cors = require("cors")
-const cookieParser = require("cookie-parser")
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+require("dotenv").config();
 
+//Routers
+const todoRouter = require("./Routes/todoRoutes");
+const { router: userRouter } = require("./Routes/userRoutes");
 
+const app = express();
 
-
-// mongoose.connect(process.env.MONGO_URL)
-//   .then(() => {
-//     console.log("DB connected")
-//     app.listen(process.env.PORT, () => {
-//       console.log("Server is Running on " + process.env.PORT)
-//     })
-//   })
-//   .catch(() => {
-//     console.log("Failed")
-//   })
-
-// middlewares
+//Middlewares 
 app.use(cors({
   credentials: true,
-  origin: ["http://localhost:5173", "https://todo-frontend-six-henna.vercel.app"]
-}))
+  origin: [
+    "http://localhost:5173",
+    "https://todo-frontend-six-henna.vercel.app"
+  ]
+}));
 
-app.use(express.json())
-app.use(cookieParser())
-app.use("/api", todoRouter)
-app.use("/api", userRouter)
+app.use(express.json());
+app.use(cookieParser());
 
+//API Routes
+app.use("/api", todoRouter);
+app.use("/api", userRouter);
 
-// local development mode
-if (require.main === module) {
-  mongoose.connect(process.env.MONGO_URL)
-    .then(() => {
-      console.log("DB connected");
-      app.listen(process.env.PORT, () => {
-        console.log("Server running on " + process.env.PORT);
-      });
-    })
-    .catch(() => {
-      console.log("DB connection failed");
+//Database Connection 
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     });
+    console.log("DB connected");
+  } catch (err) {
+    console.error("DB connection failed:", err.message);
+    process.exit(1);
+  }
+};
+
+//Local Development
+if (require.main === module) {
+  connectDB().then(() => {
+    app.listen(process.env.PORT, () => {
+      console.log(`Server running on port ${process.env.PORT}`);
+    });
+  });
 } else {
-
-  //vercel mode (no app.listen, just DB connect)
-  mongoose.connect(process.env.MONGO_URL)
-    .then(() => console.log("DB connected (Vercel)"))
-    .catch(() => console.log("DB connection failed (Vercel)"));
+  //Vercel Mode
+  connectDB().then(() => {
+    console.log("DB connected (Vercel)");
+  });
 }
-
 
 module.exports = app;

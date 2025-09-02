@@ -6,101 +6,103 @@ const validator = require("validator")
 const jwt = require("jsonwebtoken")
 const { isLoggedIn } = require("../Middlewares/isLoggedIn")
 
-
-
+// Get logged-in user data (protected route)
 router.get("/user/get-user-data", isLoggedIn, (req, res) => {
   try {
-    const user = req.user
-    res.status(200).json({ data: user })
+    res.status(200).json({ data: req.user })
   } catch (error) {
-    res.status(400).json({ err: error.message })
+    res.status(500).json({ err: error.message })
   }
 })
 
+// Signup new user
 router.post("/user/signup", async (req, res) => {
   try {
-    var { firstName, lastName, username, email, number, gender, dateOfBirth, password } = req.body
+    const { firstName, lastName, username, email, number, gender, dateOfBirth, password } = req.body
 
+    // 1. Validation → all fields required
     if (!firstName || !lastName || !username || !email || !number || !gender || !password || !dateOfBirth) {
-      throw new Error("Please Enter all the required Fields")
+      return res.status(400).json({ error: "Please enter all the required fields" })
     }
 
-    const foundUser = await User.findOne({
-      $or: [
-        { username: username },
-        { email: email }
-      ]
-    })
-
+    // 2. Check if username or email already exists
+    const foundUser = await User.findOne({ $or: [{ username }, { email }] })
     if (foundUser) {
-      throw new Error("User already exists")
+      return res.status(409).json({ error: "User already exists" })
     }
 
-    const flag = validator.isStrongPassword(password)
-    if (!flag) {
-      throw new Error("Please enter a strong password")
-    }
-    const isDateValid = validator.isDate(dateOfBirth)
-    if (!isDateValid) {
-      throw new Error("Please Enter a valid date")
+    // 3. Check password strength
+    if (!validator.isStrongPassword(password)) {
+      return res.status(400).json({ error: "Please enter a strong password" })
     }
 
+    // 4. Validate date format
+    if (!validator.isDate(dateOfBirth)) {
+      return res.status(400).json({ error: "Please enter a valid date" })
+    }
+
+    // 5. Hash password before saving
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // 6. Create user
     const createdUser = await User.create({
       firstName, lastName, username, email, number, gender, dateOfBirth, password: hashedPassword
     })
 
-    var { firstName, lastName, username, email, number, gender, dateOfBirth } = createdUser
-    res.status(201).json({ msg: "User registered successfully", data: createdUser })
-  }
-  catch (error) {
-    res.status(400).json({ error: error.message })
+    // 7. Hide password in response
+    const userResponse = createdUser.toObject()
+    delete userResponse.password
+
+    res.status(201).json({ msg: "User registered successfully", data: userResponse })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
   }
 })
 
+// Login user
 router.post("/user/login", async (req, res) => {
   try {
     const { username, password } = req.body
+
+    // 1. Validation
     if (!username || !password) {
-      throw new Error("Please Enter all the fields")
+      return res.status(400).json({ error: "Please enter all the fields" })
     }
 
-    const foundUser = await User.findOne({ username: username }).populate("todos")
-
+    // 2. Find user
+    const foundUser = await User.findOne({ username }).populate("todos")
     if (!foundUser) {
-      throw new Error("User does not exist")
+      return res.status(404).json({ error: "User does not exist" })
     }
 
-    const flag = bcrypt.compareSync(password, foundUser.password)
-    // const flag = await bcrypt.compare(password,foundUser.password)
-
+    // 3. Compare password
+    const flag = await bcrypt.compare(password, foundUser.password)
     if (!flag) {
-      throw new Error("Invalid Credentials")
+      return res.status(401).json({ error: "Invalid credentials" })
     }
 
-    const token = jwt.sign({ _id: foundUser._id }, process.env.JWT_SECRET)
-    // console.log(token)
-    // res.send("ok")
+    // 4. Generate JWT token (expires in 1 day)
+    const token = jwt.sign({ _id: foundUser._id }, process.env.JWT_SECRET, { expiresIn: "1d" })
 
-    res.status(200).cookie("token", token, { maxAge: 24 * 60 * 60 * 1000 }).json({ msg: "User Logged in", data: foundUser })
+    // 5. Send cookie securely
+    res.status(200)
+      .cookie("token", token, {
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+        httpOnly: true,              // prevents XSS
+        secure: process.env.NODE_ENV === "production", // only https in production
+        sameSite: "strict"
+      })
+      .json({ msg: "User logged in", data: foundUser })
   } catch (error) {
-    res.status(400).json({ error: error.message })
+    res.status(500).json({ error: error.message })
   }
 })
 
-router.post("/user/logout", async (req, res) => {
-  res.status(200).cookie("token", null).json({ msg: "User logged out" })
+// Logout user (clear cookie)
+router.post("/user/logout", (req, res) => {
+  res.status(200)
+    .cookie("token", "", { expires: new Date(0) }) // expire cookie immediately
+    .json({ msg: "User logged out" })
 })
-
-
-
-// for Cookie check 
-// router.get("/testing",(req,res)=>{
-//   res.cookie("name","shrikant",{maxAge:30*1000}).send("ok")
-// })
-
-
-
 
 module.exports = { router }

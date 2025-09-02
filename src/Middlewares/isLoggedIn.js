@@ -1,27 +1,37 @@
-const jwt = require("jsonwebtoken")
-const {User} = require("../Models/userSchema")
-
-
+const jwt = require("jsonwebtoken");
+const { User } = require("../Models/userSchema");
 
 async function isLoggedIn(req, res, next) {
   try {
-    const { token } = req.cookies
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET) //{_id:fghjkbnjm}
-    const foundUser = await User.findById(decodedToken._id).populate("todos")
+    const { token } = req.cookies;
 
-    if (!foundUser) {
-      throw new Error("Please Log in")
+    // 400 → No token
+    if (!token) {
+      return res.status(400).json({ error: "No token, please log in" });
     }
-    req.userId = decodedToken._id
-    req.user = foundUser
-    next()
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      // 401 → Invalid/Expired token
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    const foundUser = await User.findById(decodedToken._id).populate("todos");
+    if (!foundUser) {
+      // 404 → User not found
+      return res.status(404).json({ error: "User not found, please sign up" });
+    }
+
+    // Attach user info for downstream routes
+    req.userId = decodedToken._id;
+    req.user = foundUser;
+
+    next();
   } catch (error) {
-    res.status(400).json({ error: "Please Log in" })
+    // 500 → Unexpected server error
+    res.status(500).json({ error: "Internal Server Error" });
   }
 }
-
-
-
-module.exports = {
-  isLoggedIn
-}
+module.exports = { isLoggedIn };
