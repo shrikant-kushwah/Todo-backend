@@ -9,7 +9,7 @@ const { isLoggedIn } = require("../Middlewares/isLoggedIn")
 // Get logged-in user data (protected route)
 router.get("/user/get-user-data", isLoggedIn, (req, res) => {
   try {
-    res.status(200).json({ data: req.user })
+    res.status(200).json({ data:req.user })
   } catch (error) {
     res.status(500).json({ err: error.message })
   }
@@ -89,8 +89,8 @@ router.post("/user/login", async (req, res) => {
       .cookie("token", token, {
         maxAge: 24 * 60 * 60 * 1000, // 1 day
         httpOnly: true,              // prevents XSS
-        secure: process.env.NODE_ENV === "production", // only https in production
-        sameSite: "strict"
+        sameSite: "none",
+        secure: true // only for HTTPS
       })
       .json({ msg: "User logged in", data: foundUser })
   } catch (error) {

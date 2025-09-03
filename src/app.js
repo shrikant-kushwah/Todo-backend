@@ -12,7 +12,7 @@ const app = express();
 
 //Middlewares 
 app.use(cors({
-  origin: ["https://todo-frontend-six-henna.vercel.app"],
+  origin: ["http://localhost:5173","https://todo-frontend-six-henna.vercel.app"],
   credentials: true
 }));
 
