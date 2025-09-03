@@ -4,7 +4,7 @@ const { User } = require("../Models/userSchema");
 async function isLoggedIn(req, res, next) {
   try {
     const { token } = req.cookies;
-    console.log(token)
+    // console.log(token)
     // 400 → No token
     if (!token) {
       return res.status(400).json({ error: "No token, please log in" });
