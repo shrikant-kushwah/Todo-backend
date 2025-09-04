@@ -7,6 +7,7 @@ require("dotenv").config();
 //Routers
 const todoRouter = require("./Routes/todoRoutes");
 const { router: userRouter } = require("./Routes/userRoutes");
+// const { router: aiRouter } = require("./Routes/aiRoutes");
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(cookieParser());
 //API Routes
 app.use("/api", todoRouter);
 app.use("/api", userRouter);
+// app.use("/api", aiRouter);
 
 //Database Connection 
 const connectDB = async () => {
